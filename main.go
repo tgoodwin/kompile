@@ -21,7 +21,6 @@ func printFullFuncDecl(funcDecl *ast.FuncDecl, fset *token.FileSet) string {
 		log.Printf("Failed to print function declaration: %v", err)
 		return ""
 	}
-	fmt.Println(buf.String()) // Print the complete function declaration
 	return buf.String()
 }
 
@@ -35,7 +34,7 @@ func findFunctions(node ast.Node) {
 	})
 }
 
-func replaceGoRoutines() {
+func replaceWithServiceCall(node *ast.GoStmt) {
 	// TODO replace goroutine call with a function call that:
 	// registers an HTTP handler to listen for channel responses'
 	// creates a pod, runs it
@@ -45,19 +44,15 @@ func replaceGoRoutines() {
 
 func findGoroutines(node ast.Node, fset *token.FileSet) {
 	ast.Inspect(node, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.GoStmt:
-			fmt.Printf("Found a goroutine at line %d\n", x.Pos())
-			fmt.Printf("Goroutine: %v\n", x)
-
-			if callExpr, ok := x.Call.Fun.(*ast.Ident); ok {
+		if goStmt, ok := n.(*ast.GoStmt); ok {
+			if callExpr, ok := goStmt.Call.Fun.(*ast.Ident); ok {
 				if function, ok := functions[callExpr.Name]; ok {
 					fmt.Printf("The goroutine is calling the function %s\n", function.Name.Name)
 					fstring := printFullFuncDecl(function, fset)
-					replaceGoRoutines()
 					if err := generateServerFile(function.Name.Name, fstring); err != nil {
 						log.Fatalf("Error generating server file: %s", err)
 					}
+					replaceWithServiceCall(goStmt)
 				}
 			}
 		}

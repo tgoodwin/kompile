@@ -51,10 +51,6 @@ type ServerConfig struct {
 	FunctionName        string
 }
 
-func generateHandlerForRoutine(funcName, functionDecl string) {
-	//
-}
-
 func generateImports(filePath string) error {
 	err := exec.Command("goimports", "-w", filePath).Run()
 	if err != nil {
