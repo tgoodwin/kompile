@@ -13,15 +13,16 @@ import (
 
 var functions = make(map[string]*ast.FuncDecl)
 
-func printFullFuncDecl(funcDecl *ast.FuncDecl, fset *token.FileSet) {
+func printFullFuncDecl(funcDecl *ast.FuncDecl, fset *token.FileSet) string {
 	var buf bytes.Buffer
 	// Use the printer package to format the function declaration
 	err := printer.Fprint(&buf, fset, funcDecl)
 	if err != nil {
 		log.Printf("Failed to print function declaration: %v", err)
-		return
+		return ""
 	}
 	fmt.Println(buf.String()) // Print the complete function declaration
+	return buf.String()
 }
 
 func findFunctions(node ast.Node) {
@@ -34,6 +35,14 @@ func findFunctions(node ast.Node) {
 	})
 }
 
+func replaceGoRoutines() {
+	// TODO replace goroutine call with a function call that:
+	// registers an HTTP handler to listen for channel responses'
+	// creates a pod, runs it
+	// gets pod IP address
+	// makes a POST request to the pod
+}
+
 func findGoroutines(node ast.Node, fset *token.FileSet) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		switch x := n.(type) {
@@ -44,7 +53,11 @@ func findGoroutines(node ast.Node, fset *token.FileSet) {
 			if callExpr, ok := x.Call.Fun.(*ast.Ident); ok {
 				if function, ok := functions[callExpr.Name]; ok {
 					fmt.Printf("The goroutine is calling the function %s\n", function.Name.Name)
-					printFullFuncDecl(function, fset)
+					fstring := printFullFuncDecl(function, fset)
+					replaceGoRoutines()
+					if err := generateServerFile(function.Name.Name, fstring); err != nil {
+						log.Fatalf("Error generating server file: %s", err)
+					}
 				}
 			}
 		}
